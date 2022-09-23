@@ -1,0 +1,1 @@
+# Verifiabled.TestAdapter
