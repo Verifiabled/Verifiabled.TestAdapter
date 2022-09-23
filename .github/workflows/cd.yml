@@ -1,0 +1,59 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - 'release/**'   
+
+jobs:
+  publish:
+
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./Sources/
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Find release version
+      uses: actions/github-script@v6
+      id: version
+      with:
+        script: |
+          const version = context.ref.replace('refs/heads/release/', '')
+          const parts = version.split('-')
+          return { prefix: parts[0], suffix: parts[1] || '' }
+    - name: Set release version prefix
+      run: echo "VERSION_PREFIX=${{ fromJSON(steps.version.outputs.result).prefix }}" >> $GITHUB_ENV
+    - name: Set release version suffix
+      run: echo "VERSION_SUFFIX=${{ fromJSON(steps.version.outputs.result).suffix }}" >> $GITHUB_ENV
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: 6.x.x
+    - name: Restore
+      run: dotnet restore
+    - name: Build
+      run: dotnet build -c Release --no-restore -p:VersionPrefix=${{ env.VERSION_PREFIX }} -p:VersionSuffix=${{ env.VERSION_SUFFIX }}
+    - name: Pack
+      run: dotnet pack -c Release --output nupkgs --no-build -p:VersionPrefix=${{ env.VERSION_PREFIX }} -p:VersionSuffix=${{ env.VERSION_SUFFIX }}
+    - name: NuGet pack artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: NuGets
+        path: ./Sources/nupkgs
+    - name: Push generated package to NuGet registry
+      run: dotnet nuget push ./nupkgs/*.nupkg -k ${{ secrets.NUGET_APIKEY }} -s https://api.nuget.org/v3/index.json
+    - name: Create version tag
+      uses: actions/github-script@v5
+      with:
+        script: |
+          github.rest.git.createRef({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: 'refs/tags/v${{ env.VERSION_PREFIX }}${{ env.VERSION_SUFFIX }}',
+            sha: context.sha
+          })
