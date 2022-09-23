@@ -40,6 +40,9 @@ namespace Verifiabled.TestAdapter
                 return;
             }
 
+            foreach (var test in tests)
+                frameworkHandle.SendMessage(TestMessageLevel.Error, test.FullyQualifiedName);
+
             RunTestsExecutionLogic(tests, frameworkHandle);
         }
 
@@ -57,7 +60,7 @@ namespace Verifiabled.TestAdapter
             foreach (var source in sources)
                 frameworkHandle.SendMessage(TestMessageLevel.Error, source);
 
-            var discoveredCases = sources.SelectMany(source => CasesDiscoverer.Explore(source, message => frameworkHandle.SendMessage(TestMessageLevel.Warning, message)));
+            var discoveredCases = sources.SelectMany(source => CasesDiscoverer.Explore(source, message => frameworkHandle.SendMessage(TestMessageLevel.Error, message)));
 
             frameworkHandle.SendMessage(TestMessageLevel.Error, $"Cases found: {discoveredCases.Count()}");
 
@@ -71,7 +74,7 @@ namespace Verifiabled.TestAdapter
             foreach (var test in tests)
             {
                 frameworkHandle.RecordStart(test);
-                var testResult = CaseExecution.Execute(test, CancellationTokenSource.Token);
+                var testResult = CaseExecution.Execute(test, CancellationTokenSource.Token, message => frameworkHandle.SendMessage(TestMessageLevel.Warning, message));
                 frameworkHandle.RecordResult(testResult);
                 frameworkHandle.RecordEnd(test, testResult.Outcome);
             }

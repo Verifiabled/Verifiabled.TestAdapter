@@ -7,8 +7,9 @@ namespace Verifiabled.TestAdapter.CaseExecution
 {
     internal class DefaultCaseExecution : ICaseExecution
     {
-        public TestResult Execute(TestCase testCase, CancellationToken cancellationToken)
+        public TestResult Execute(TestCase testCase, CancellationToken cancellationToken, Action<string> logger)
         {
+            logger(testCase.FullyQualifiedName);
             var testResult = new TestResult(testCase);
             var stopwatch = Stopwatch.StartNew();
 
@@ -16,15 +17,17 @@ namespace Verifiabled.TestAdapter.CaseExecution
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
+                    logger("Cancellation requested");
                     testResult.Outcome = TestOutcome.None;
                     return testResult;
                 }
 
-                ExecuteTest(testCase, testResult);
+                ExecuteTest(testCase, testResult, logger);
             }
 
             catch (Exception exception)
             {
+                logger($"{exception.GetType().Name}: {exception.Message}");
                 testResult.Outcome = TestOutcome.Failed;
                 testResult.ErrorMessage = exception.Message;
                 testResult.ErrorStackTrace = exception.StackTrace;
@@ -39,7 +42,7 @@ namespace Verifiabled.TestAdapter.CaseExecution
             return testResult;
         }
 
-        private static void ExecuteTest(TestCase testCase, TestResult testResult)
+        private static void ExecuteTest(TestCase testCase, TestResult testResult, Action<string> logger)
         {
             (string assemblyName, string className, string methodName) = OriginPropagator.Depropagate(testCase.FullyQualifiedName);
 
@@ -47,14 +50,16 @@ namespace Verifiabled.TestAdapter.CaseExecution
 
             if(assembly == null)
             {
+                logger($"Assembly not found: {assemblyName}");
                 testResult.Outcome = TestOutcome.NotFound;
                 return;
             }
 
-            var type = assembly.GetType(className);
+            var type = assembly.GetTypes().FirstOrDefault(t => t.Name == className);
 
             if(type == null)
             {
+                logger($"Type not found: {className}");
                 testResult.Outcome = TestOutcome.NotFound;
                 return;
             }
@@ -63,11 +68,19 @@ namespace Verifiabled.TestAdapter.CaseExecution
 
             if(method == null)
             {
+                logger($"Method not found: {methodName}");
                 testResult.Outcome = TestOutcome.NotFound;
                 return;
             }
 
-            var instance = type.Assembly.CreateInstance(className);
+            var instance = Activator.CreateInstance(type);
+
+            if(instance == null)
+            {
+                logger($"Instance was not created");
+                testResult.Outcome = TestOutcome.Failed;
+                return;
+            }
 
             var constraintListener = new DefaultConstraintListener();
             GlobalConstraintListenerManager.Add(constraintListener);

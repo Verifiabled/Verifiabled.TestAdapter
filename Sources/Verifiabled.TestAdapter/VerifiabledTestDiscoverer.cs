@@ -27,7 +27,7 @@ namespace Verifiabled.TestAdapter
             {
                 logger.SendMessage(TestMessageLevel.Informational, $"Container found: {source}");
 
-                var discoveredCases = CasesDiscoverer.Explore(source, message => logger.SendMessage(TestMessageLevel.Warning, message));
+                var discoveredCases = CasesDiscoverer.Explore(source, message => logger.SendMessage(TestMessageLevel.Error, message));
 
                 logger.SendMessage(TestMessageLevel.Informational, $"Cases found: {discoveredCases.Count()}");
 

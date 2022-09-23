@@ -4,6 +4,6 @@ namespace Verifiabled.TestAdapter.CaseExecution
 {
     internal interface ICaseExecution
     {
-        TestResult Execute(TestCase testCase, CancellationToken cancellationToken);
+        TestResult Execute(TestCase testCase, CancellationToken cancellationToken, Action<string> logger);
     }
 }

@@ -7,6 +7,8 @@ namespace Verifiabled.TestAdapter.CaseDiscovery
     {
         public IEnumerable<TestCase> Explore(string source, Action<string> logger)
         {
+            logger("Explore");
+
             var testCases = new List<TestCase>();
 
             try
@@ -19,7 +21,7 @@ namespace Verifiabled.TestAdapter.CaseDiscovery
                     return testCases;
                 }
 
-                var assemblyName = assembly.FullName;
+                var assemblyName = assembly.GetName().Name;
 
                 if(assemblyName == null)
                 {
@@ -35,7 +37,7 @@ namespace Verifiabled.TestAdapter.CaseDiscovery
                     {
                         logger($"Method explored {method.Name}");
 
-                        var attribute = method.GetCustomAttribute<CaseAttribute>();
+                        var attribute = method.GetCustomAttributes().FirstOrDefault(att => att.GetType().Name == nameof(CaseAttribute));
 
                         if (attribute == null)
                         {
