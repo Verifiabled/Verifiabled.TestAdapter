@@ -4,6 +4,6 @@ namespace Verifiabled.TestAdapter.CaseDiscovery
 {
     internal interface ICaseDiscoverer
     {
-        IEnumerable<TestCase> Explore(string source);
+        IEnumerable<TestCase> Explore(string source, Action<string> logger);
     }
 }

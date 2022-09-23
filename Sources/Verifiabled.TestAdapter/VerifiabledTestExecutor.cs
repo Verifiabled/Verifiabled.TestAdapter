@@ -7,7 +7,7 @@ using Verifiabled.TestAdapter.CaseExecution;
 namespace Verifiabled.TestAdapter
 {
     [ExtensionUri(VerifiabledExecutorConstants.UriString)]
-    public sealed class VerifiabledTestExecutor : ITestExecutor
+    public class VerifiabledTestExecutor : ITestExecutor
     {
         private ICaseDiscoverer CasesDiscoverer { get; }
         private ICaseExecution CaseExecution { get; }
@@ -54,9 +54,12 @@ namespace Verifiabled.TestAdapter
                 return;
             }
 
-            var discoveredCases = sources.SelectMany(source => CasesDiscoverer.Explore(source));
+            foreach (var source in sources)
+                frameworkHandle.SendMessage(TestMessageLevel.Error, source);
 
-            frameworkHandle.SendMessage(TestMessageLevel.Informational, $"Cases found: {discoveredCases.Count()}");
+            var discoveredCases = sources.SelectMany(source => CasesDiscoverer.Explore(source, message => frameworkHandle.SendMessage(TestMessageLevel.Warning, message)));
+
+            frameworkHandle.SendMessage(TestMessageLevel.Error, $"Cases found: {discoveredCases.Count()}");
 
             RunTestsExecutionLogic(discoveredCases, frameworkHandle);
         }

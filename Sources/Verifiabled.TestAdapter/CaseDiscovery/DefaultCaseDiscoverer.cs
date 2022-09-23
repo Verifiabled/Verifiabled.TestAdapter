@@ -5,25 +5,55 @@ namespace Verifiabled.TestAdapter.CaseDiscovery
 {
     internal class DefaultCaseDiscoverer : ICaseDiscoverer
     {
-        public IEnumerable<TestCase> Explore(string source)
+        public IEnumerable<TestCase> Explore(string source, Action<string> logger)
         {
-            var assembly = Assembly.LoadFile(source);
+            var testCases = new List<TestCase>();
 
-            if (!assembly.GetReferencedAssemblies().Any(assembly => assembly.Name == nameof(Verifiabled)))
-                yield break;
-
-            foreach(var type in assembly.GetTypes())
+            try
             {
-                foreach(var method in type.GetMethods())
+                var assembly = Assembly.LoadFile(source);
+
+                if (assembly == null)
                 {
-                    var attribute = method.GetCustomAttribute<CaseAttribute>();
+                    logger($"Assembly not found: {source}");
+                    return testCases;
+                }
 
-                    if (attribute == null)
-                        break;
+                var assemblyName = assembly.FullName;
 
-                    yield return new TestCase(OriginPropagator.Propagate(assembly.GetName().FullName, type.Name, method.Name), VerifiabledExecutorConstants.Uri, source);
+                if(assemblyName == null)
+                {
+                    logger($"Assembly name not retrieved");
+                    return testCases;
+                }
+
+                foreach (var type in assembly.GetTypes())
+                {
+                    logger($"Type explored {type.Name}");
+
+                    foreach (var method in type.GetMethods())
+                    {
+                        logger($"Method explored {method.Name}");
+
+                        var attribute = method.GetCustomAttribute<CaseAttribute>();
+
+                        if (attribute == null)
+                        {
+                            logger($"No CaseAttribute");
+                            break;
+                        }
+
+                        testCases.Add(new TestCase(OriginPropagator.Propagate(assemblyName, type.Name, method.Name), VerifiabledExecutorConstants.Uri, source));
+                    }
                 }
             }
+
+            catch(Exception exception)
+            {
+                logger($"{exception.GetType().Name}: {exception.Message}");
+            }
+
+            return testCases;
         }
     }
 }

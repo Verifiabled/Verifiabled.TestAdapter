@@ -7,7 +7,7 @@ namespace Verifiabled.TestAdapter
 {
     [FileExtension(".dll")]
     [DefaultExecutorUri(VerifiabledExecutorConstants.UriString)]
-    public sealed class VerifiabledTestDiscoverer : ITestDiscoverer
+    public class VerifiabledTestDiscoverer : ITestDiscoverer
     {
         private ICaseDiscoverer CasesDiscoverer { get; }
 
@@ -21,11 +21,13 @@ namespace Verifiabled.TestAdapter
 
         public void DiscoverTests(IEnumerable<string> sources, IDiscoveryContext discoveryContext, IMessageLogger logger, ITestCaseDiscoverySink discoverySink)
         {
+            logger.SendMessage(TestMessageLevel.Error, "Woo");
+
             foreach (var source in sources)
             {
                 logger.SendMessage(TestMessageLevel.Informational, $"Container found: {source}");
 
-                var discoveredCases = CasesDiscoverer.Explore(source);
+                var discoveredCases = CasesDiscoverer.Explore(source, message => logger.SendMessage(TestMessageLevel.Warning, message));
 
                 logger.SendMessage(TestMessageLevel.Informational, $"Cases found: {discoveredCases.Count()}");
 
