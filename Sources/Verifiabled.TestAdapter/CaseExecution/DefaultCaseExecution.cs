@@ -47,7 +47,7 @@ namespace Verifiabled.TestAdapter.CaseExecution
 
         private static void ExecuteTest(TestCase testCase, TestResult testResult, ILogger logger)
         {
-            (string assemblyName, string className, string methodName) = OriginPropagator.Depropagate(testCase.FullyQualifiedName);
+            (string assemblyName, string? namespaceName, string className, string methodName) = OriginPropagator.Depropagate(testCase.FullyQualifiedName);
 
             var assembly = Assembly.Load(assemblyName);
 
@@ -58,7 +58,7 @@ namespace Verifiabled.TestAdapter.CaseExecution
                 return;
             }
 
-            var type = assembly.GetTypes().FirstOrDefault(t => t.Name == className);
+            var type = assembly.GetTypes().FirstOrDefault(t => t.Namespace == namespaceName && t.Name == className);
 
             if (type == null)
             {

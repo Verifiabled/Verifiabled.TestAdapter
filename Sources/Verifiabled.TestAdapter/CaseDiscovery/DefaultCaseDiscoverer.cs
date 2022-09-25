@@ -6,6 +6,8 @@ namespace Verifiabled.TestAdapter.CaseDiscovery
 {
     internal class DefaultCaseDiscoverer : ICaseDiscoverer
     {
+        private static readonly string CaseAttributeFullName = typeof(CaseAttribute).FullName ?? string.Empty;
+
         public IEnumerable<TestCase> Explore(string source, ILogger logger)
         {
             var testCases = new List<TestCase>();
@@ -30,13 +32,13 @@ namespace Verifiabled.TestAdapter.CaseDiscovery
 
                 foreach (var type in assembly.GetTypes())
                 {
-                    logger.Information($"Type explored {type.Name}");
+                    logger.Information($"Type explored {type.FullName}");
 
                     foreach (var method in type.GetMethods())
                     {
                         logger.Information($"Method explored {method.Name}");
 
-                        var attribute = method.GetCustomAttributes().FirstOrDefault(att => att.GetType().Name == nameof(CaseAttribute));
+                        var attribute = method.GetCustomAttributes().FirstOrDefault(att => att.GetType().FullName == CaseAttributeFullName);
 
                         if (attribute == null)
                         {
@@ -44,7 +46,7 @@ namespace Verifiabled.TestAdapter.CaseDiscovery
                             break;
                         }
 
-                        var testCase = new TestCase(OriginPropagator.Propagate(assemblyName, type.Name, method.Name), VerifiabledExecutorConstants.Uri, source);
+                        var testCase = new TestCase(OriginPropagator.Propagate(assemblyName, type.Namespace, type.Name, method.Name), VerifiabledExecutorConstants.Uri, source);
                         testCases.Add(testCase);
                     }
                 }
