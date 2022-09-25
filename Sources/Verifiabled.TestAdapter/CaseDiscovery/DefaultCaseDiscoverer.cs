@@ -44,7 +44,8 @@ namespace Verifiabled.TestAdapter.CaseDiscovery
                             break;
                         }
 
-                        testCases.Add(new TestCase(OriginPropagator.Propagate(assemblyName, type.Name, method.Name), VerifiabledExecutorConstants.Uri, source));
+                        var testCase = new TestCase(OriginPropagator.Propagate(assemblyName, type.Name, method.Name), VerifiabledExecutorConstants.Uri, source);
+                        testCases.Add(testCase);
                     }
                 }
             }

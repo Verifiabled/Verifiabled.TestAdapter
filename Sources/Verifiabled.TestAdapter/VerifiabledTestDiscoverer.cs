@@ -1,13 +1,16 @@
 ﻿using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Adapter;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging;
+using System.ComponentModel;
 using Verifiabled.TestAdapter.CaseDiscovery;
 using Verifiabled.TestAdapter.Logger;
 
 namespace Verifiabled.TestAdapter
 {
-    [FileExtension(".dll")]
     [DefaultExecutorUri(VerifiabledExecutorConstants.UriString)]
+    [FileExtension(".dll")]
+    [FileExtension(".exe")]
+    [Category("managed")]
     public class VerifiabledTestDiscoverer : ITestDiscoverer
     {
         private ICaseDiscoverer CasesDiscoverer { get; }

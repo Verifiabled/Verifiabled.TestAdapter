@@ -11,6 +11,7 @@ namespace Verifiabled.TestAdapter.CaseExecution
         public TestResult Execute(TestCase testCase, ILogger logger, CancellationToken cancellationToken)
         {
             var testResult = new TestResult(testCase);
+            testResult.StartTime = DateTimeOffset.UtcNow;
             var stopwatch = Stopwatch.StartNew();
 
             try
@@ -38,6 +39,7 @@ namespace Verifiabled.TestAdapter.CaseExecution
             {
                 stopwatch.Stop();
                 testResult.Duration = stopwatch.Elapsed;
+                testResult.EndTime = DateTimeOffset.UtcNow;
             }
 
             return testResult;
@@ -83,6 +85,7 @@ namespace Verifiabled.TestAdapter.CaseExecution
                 return;
             }
 
+            GlobalConstraintListenerManager.Clear();
             var constraintListener = new DefaultConstraintListener();
             GlobalConstraintListenerManager.Add(constraintListener);
 
