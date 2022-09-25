@@ -1,14 +1,13 @@
 ﻿using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using System.Reflection;
+using Verifiabled.TestAdapter.Logger;
 
 namespace Verifiabled.TestAdapter.CaseDiscovery
 {
     internal class DefaultCaseDiscoverer : ICaseDiscoverer
     {
-        public IEnumerable<TestCase> Explore(string source, Action<string> logger)
+        public IEnumerable<TestCase> Explore(string source, ILogger logger)
         {
-            logger("Explore");
-
             var testCases = new List<TestCase>();
 
             try
@@ -17,7 +16,7 @@ namespace Verifiabled.TestAdapter.CaseDiscovery
 
                 if (assembly == null)
                 {
-                    logger($"Assembly not found: {source}");
+                    logger.Error($"Assembly not found: {source}");
                     return testCases;
                 }
 
@@ -25,23 +24,23 @@ namespace Verifiabled.TestAdapter.CaseDiscovery
 
                 if(assemblyName == null)
                 {
-                    logger($"Assembly name not retrieved");
+                    logger.Error("Assembly name not retrieved");
                     return testCases;
                 }
 
                 foreach (var type in assembly.GetTypes())
                 {
-                    logger($"Type explored {type.Name}");
+                    logger.Information($"Type explored {type.Name}");
 
                     foreach (var method in type.GetMethods())
                     {
-                        logger($"Method explored {method.Name}");
+                        logger.Information($"Method explored {method.Name}");
 
                         var attribute = method.GetCustomAttributes().FirstOrDefault(att => att.GetType().Name == nameof(CaseAttribute));
 
                         if (attribute == null)
                         {
-                            logger($"No CaseAttribute");
+                            logger.Information($"No CaseAttribute");
                             break;
                         }
 
@@ -52,7 +51,7 @@ namespace Verifiabled.TestAdapter.CaseDiscovery
 
             catch(Exception exception)
             {
-                logger($"{exception.GetType().Name}: {exception.Message}");
+                logger.Error($"{exception.GetType().Name}: {exception.Message}");
             }
 
             return testCases;

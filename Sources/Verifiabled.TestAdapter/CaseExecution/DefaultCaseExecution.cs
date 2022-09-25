@@ -2,14 +2,14 @@
 using System.Diagnostics;
 using System.Reflection;
 using Verifiabled.Constraints;
+using Verifiabled.TestAdapter.Logger;
 
 namespace Verifiabled.TestAdapter.CaseExecution
 {
     internal class DefaultCaseExecution : ICaseExecution
     {
-        public TestResult Execute(TestCase testCase, CancellationToken cancellationToken, Action<string> logger)
+        public TestResult Execute(TestCase testCase, ILogger logger, CancellationToken cancellationToken)
         {
-            logger(testCase.FullyQualifiedName);
             var testResult = new TestResult(testCase);
             var stopwatch = Stopwatch.StartNew();
 
@@ -17,7 +17,7 @@ namespace Verifiabled.TestAdapter.CaseExecution
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
-                    logger("Cancellation requested");
+                    logger.Information("Cancellation requested");
                     testResult.Outcome = TestOutcome.None;
                     return testResult;
                 }
@@ -27,10 +27,11 @@ namespace Verifiabled.TestAdapter.CaseExecution
 
             catch (Exception exception)
             {
-                logger($"{exception.GetType().Name}: {exception.Message}");
-                testResult.Outcome = TestOutcome.Failed;
-                testResult.ErrorMessage = exception.Message;
-                testResult.ErrorStackTrace = exception.StackTrace;
+                if (exception.InnerException != null)
+                    HandleException(exception.InnerException, testResult);
+
+                else
+                    HandleException(exception, testResult);
             }
 
             finally
@@ -42,42 +43,42 @@ namespace Verifiabled.TestAdapter.CaseExecution
             return testResult;
         }
 
-        private static void ExecuteTest(TestCase testCase, TestResult testResult, Action<string> logger)
+        private static void ExecuteTest(TestCase testCase, TestResult testResult, ILogger logger)
         {
             (string assemblyName, string className, string methodName) = OriginPropagator.Depropagate(testCase.FullyQualifiedName);
 
             var assembly = Assembly.Load(assemblyName);
 
-            if(assembly == null)
+            if (assembly == null)
             {
-                logger($"Assembly not found: {assemblyName}");
+                logger.Error($"Assembly not found: {assemblyName}");
                 testResult.Outcome = TestOutcome.NotFound;
                 return;
             }
 
             var type = assembly.GetTypes().FirstOrDefault(t => t.Name == className);
 
-            if(type == null)
+            if (type == null)
             {
-                logger($"Type not found: {className}");
+                logger.Error($"Type not found: {className}");
                 testResult.Outcome = TestOutcome.NotFound;
                 return;
             }
 
             var method = type.GetMethod(methodName);
 
-            if(method == null)
+            if (method == null)
             {
-                logger($"Method not found: {methodName}");
+                logger.Error($"Method not found: {methodName}");
                 testResult.Outcome = TestOutcome.NotFound;
                 return;
             }
 
             var instance = Activator.CreateInstance(type);
 
-            if(instance == null)
+            if (instance == null)
             {
-                logger($"Instance was not created");
+                logger.Error($"Instance was not created");
                 testResult.Outcome = TestOutcome.Failed;
                 return;
             }
@@ -96,6 +97,13 @@ namespace Verifiabled.TestAdapter.CaseExecution
             }
 
             testResult.Outcome = TestOutcome.Passed;
+        }
+
+        private static void HandleException(Exception exception, TestResult testResult)
+        {
+            testResult.Outcome = TestOutcome.Failed;
+            testResult.ErrorMessage = exception.Message;
+            testResult.ErrorStackTrace = exception.StackTrace;
         }
     }
 }

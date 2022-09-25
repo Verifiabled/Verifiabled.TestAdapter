@@ -3,6 +3,7 @@ using Microsoft.VisualStudio.TestPlatform.ObjectModel.Adapter;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging;
 using Verifiabled.TestAdapter.CaseDiscovery;
 using Verifiabled.TestAdapter.CaseExecution;
+using Verifiabled.TestAdapter.Logger;
 
 namespace Verifiabled.TestAdapter
 {
@@ -57,10 +58,8 @@ namespace Verifiabled.TestAdapter
                 return;
             }
 
-            foreach (var source in sources)
-                frameworkHandle.SendMessage(TestMessageLevel.Error, source);
-
-            var discoveredCases = sources.SelectMany(source => CasesDiscoverer.Explore(source, message => frameworkHandle.SendMessage(TestMessageLevel.Error, message)));
+            var frameworkHandleLogger = new FrameworkHandleLogger(frameworkHandle);
+            var discoveredCases = sources.SelectMany(source => CasesDiscoverer.Explore(source, frameworkHandleLogger));
 
             frameworkHandle.SendMessage(TestMessageLevel.Error, $"Cases found: {discoveredCases.Count()}");
 
@@ -71,10 +70,12 @@ namespace Verifiabled.TestAdapter
         {
             Cancel();
 
+            var frameworkHandleLogger = new FrameworkHandleLogger(frameworkHandle);
+
             foreach (var test in tests)
             {
                 frameworkHandle.RecordStart(test);
-                var testResult = CaseExecution.Execute(test, CancellationTokenSource.Token, message => frameworkHandle.SendMessage(TestMessageLevel.Warning, message));
+                var testResult = CaseExecution.Execute(test, frameworkHandleLogger, CancellationTokenSource.Token);
                 frameworkHandle.RecordResult(testResult);
                 frameworkHandle.RecordEnd(test, testResult.Outcome);
             }

@@ -2,6 +2,7 @@
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Adapter;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging;
 using Verifiabled.TestAdapter.CaseDiscovery;
+using Verifiabled.TestAdapter.Logger;
 
 namespace Verifiabled.TestAdapter
 {
@@ -21,13 +22,13 @@ namespace Verifiabled.TestAdapter
 
         public void DiscoverTests(IEnumerable<string> sources, IDiscoveryContext discoveryContext, IMessageLogger logger, ITestCaseDiscoverySink discoverySink)
         {
-            logger.SendMessage(TestMessageLevel.Error, "Woo");
+            var messageLogger = new MessageLoggerLogger(logger);
 
             foreach (var source in sources)
             {
                 logger.SendMessage(TestMessageLevel.Informational, $"Container found: {source}");
 
-                var discoveredCases = CasesDiscoverer.Explore(source, message => logger.SendMessage(TestMessageLevel.Error, message));
+                var discoveredCases = CasesDiscoverer.Explore(source, messageLogger);
 
                 logger.SendMessage(TestMessageLevel.Informational, $"Cases found: {discoveredCases.Count()}");
 
