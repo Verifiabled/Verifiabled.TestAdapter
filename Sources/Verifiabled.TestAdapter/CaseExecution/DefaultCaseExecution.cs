@@ -85,13 +85,11 @@ namespace Verifiabled.TestAdapter.CaseExecution
                 return;
             }
 
-            GlobalConstraintListenerManager.Clear();
-            var constraintListener = new DefaultConstraintListener();
-            GlobalConstraintListenerManager.Add(constraintListener);
+            GlobalConstraintListenerManager.Prepare();
 
             method.Invoke(instance, null);
 
-            var constraints = constraintListener.GetAllContraints();
+            var constraints = GlobalConstraintListenerManager.Listener.GetAllContraints();
 
             if (constraints.Any(constraint => !constraint.IsFulfilled))
             {
