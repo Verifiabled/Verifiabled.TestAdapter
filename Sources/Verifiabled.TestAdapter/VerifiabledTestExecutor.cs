@@ -61,7 +61,7 @@ namespace Verifiabled.TestAdapter
             var frameworkHandleLogger = new FrameworkHandleLogger(frameworkHandle);
             var discoveredCases = sources.SelectMany(source => CasesDiscoverer.Explore(source, frameworkHandleLogger));
 
-            frameworkHandle.SendMessage(TestMessageLevel.Error, $"Cases found: {discoveredCases.Count()}");
+            frameworkHandle.SendMessage(TestMessageLevel.Informational, $"Cases found: {discoveredCases.Count()}");
 
             RunTestsExecutionLogic(discoveredCases, frameworkHandle);
         }
