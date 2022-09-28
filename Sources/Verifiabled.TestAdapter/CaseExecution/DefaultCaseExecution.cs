@@ -82,6 +82,7 @@ namespace Verifiabled.TestAdapter.CaseExecution
             {
                 logger.Error($"Instance was not created");
                 testResult.Outcome = TestOutcome.Failed;
+                testResult.ErrorMessage = "Test case could not be executed because class containing this case could not be instantiated";
                 return;
             }
 
@@ -94,6 +95,7 @@ namespace Verifiabled.TestAdapter.CaseExecution
             if (constraints.Any(constraint => !constraint.IsFulfilled))
             {
                 testResult.Outcome = TestOutcome.Failed;
+                testResult.ErrorMessage = string.Join("\n\n", constraints.Select(constraint => constraint.FailureMessage));
                 return;
             }
 

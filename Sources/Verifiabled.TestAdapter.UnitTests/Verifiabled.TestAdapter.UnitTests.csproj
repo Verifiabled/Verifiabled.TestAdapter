@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.1.0" />
-    <PackageReference Include="Verifiabled" Version="0.0.2-alpha" />
+    <PackageReference Include="Verifiabled" Version="0.0.3-alpha" />
   </ItemGroup>
 
   <ItemGroup>
