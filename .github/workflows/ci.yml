@@ -17,9 +17,11 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Setup .NET
-      uses: actions/setup-dotnet@v2
+      uses: actions/setup-dotnet@v2 # update to v3
       with:
-        dotnet-version: 6.x.x
+        dotnet-version: 7.x.x
+        include-prerelease: true # remove when v3
+        #dotnet-quality: preview # enable when v3
     - name: Restore
       run: dotnet restore
     - name: Build
