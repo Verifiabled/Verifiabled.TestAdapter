@@ -46,7 +46,11 @@ namespace Verifiabled.TestAdapter.CaseDiscovery
                             break;
                         }
 
-                        var testCase = new TestCase(OriginPropagator.Propagate(assemblyName, type.Namespace, type.Name, method.Name), VerifiabledExecutorConstants.Uri, source);
+                        var fullyQualifiedName = OriginPropagator.Propagate(assemblyName, type.Namespace, type.Name, method.Name);
+                        var testCase = new TestCase(fullyQualifiedName, VerifiabledExecutorConstants.Uri, source);
+
+                        // add the symbol reader, read .pdb and point test case towards source file and line
+
                         testCases.Add(testCase);
                     }
                 }

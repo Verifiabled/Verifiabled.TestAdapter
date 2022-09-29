@@ -5,10 +5,9 @@
         [Case]
         public void ExamplePassingTestCase()
         {
-            var haystack = new[] { 1, 2, 3 };
-            var needle = 2;
+            var expected = true;
 
-            Assert.That(haystack).Contains(needle);
+            Assert.That(expected).IsTrue();
         }
     }
 }
