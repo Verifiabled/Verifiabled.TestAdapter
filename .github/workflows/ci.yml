@@ -19,7 +19,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v2 # update to v3
       with:
-        dotnet-version: 7.x.x
+        dotnet-version: 10.x.x
         include-prerelease: true # remove when v3
         #dotnet-quality: preview # enable when v3
     - name: Restore
