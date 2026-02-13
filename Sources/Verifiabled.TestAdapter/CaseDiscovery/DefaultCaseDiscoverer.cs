@@ -22,38 +22,7 @@ namespace Verifiabled.TestAdapter.CaseDiscovery
                     return testCases;
                 }
 
-                var assemblyName = assembly.GetName().Name;
-
-                if(assemblyName == null)
-                {
-                    logger.Error("Assembly name not retrieved");
-                    return testCases;
-                }
-
-                foreach (var type in assembly.GetTypes())
-                {
-                    logger.Information($"Type explored {type.FullName}");
-
-                    foreach (var method in type.GetMethods())
-                    {
-                        logger.Information($"Method explored {method.Name}");
-
-                        var attribute = method.GetCustomAttributes().FirstOrDefault(att => att.GetType().FullName == CaseAttributeFullName);
-
-                        if (attribute == null)
-                        {
-                            logger.Information($"No CaseAttribute");
-                            break;
-                        }
-
-                        var fullyQualifiedName = OriginPropagator.Propagate(assemblyName, type.Namespace, type.Name, method.Name);
-                        var testCase = new TestCase(fullyQualifiedName, VerifiabledExecutorConstants.Uri, source);
-
-                        // add the symbol reader, read .pdb and point test case towards source file and line
-
-                        testCases.Add(testCase);
-                    }
-                }
+                return DiscoverCases(assembly, source, logger);
             }
 
             catch(Exception exception)
@@ -62,6 +31,69 @@ namespace Verifiabled.TestAdapter.CaseDiscovery
             }
 
             return testCases;
+        }
+
+        private IEnumerable<TestCase> DiscoverCases(Assembly assembly, string source, ILogger logger)
+        {
+            var testCases = new List<TestCase>();
+            var assemblyName = assembly.GetName().Name;
+
+            if (assemblyName == null)
+            {
+                logger.Error("Assembly name not retrieved");
+                return testCases;
+            }
+
+            using var diaSession = GetDiaSession(source, logger);
+
+            foreach (var type in assembly.GetTypes())
+            {
+                logger.Information($"Type explored {type.FullName}");
+
+                foreach (var method in type.GetMethods())
+                {
+                    logger.Information($"Method explored {method.Name}");
+
+                    var attribute = method.GetCustomAttributes().FirstOrDefault(att => att.GetType().FullName == CaseAttributeFullName);
+
+                    if (attribute == null)
+                    {
+                        logger.Information($"No CaseAttribute");
+                        break;
+                    }
+
+                    var fullyQualifiedName = OriginPropagator.Propagate(assemblyName, type.Namespace, type.Name, method.Name);
+                    var testCase = new TestCase(fullyQualifiedName, VerifiabledExecutorConstants.Uri, source);
+
+                    if (diaSession != null && type.FullName != null)
+                    {
+                        var navigationData = diaSession.GetNavigationData(type.FullName, method.Name);
+
+                        if (navigationData != null)
+                        {
+                            testCase.CodeFilePath = navigationData.FileName;
+                            testCase.LineNumber = navigationData.MinLineNumber;
+                        }
+                    }
+
+                    testCases.Add(testCase);
+                }
+            }
+
+            return testCases;
+        }
+
+        private static DiaSession? GetDiaSession(string source, ILogger logger)
+        {
+            try
+            {
+                return new DiaSession(source);
+            }
+            catch (Exception exception)
+            {
+                logger.Information($"Failed to create DiaSession for {source}. Error: {exception.Message}");
+                return null;
+            }
         }
     }
 }
