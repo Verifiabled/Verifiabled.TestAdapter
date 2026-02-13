@@ -43,7 +43,7 @@ jobs:
     - name: Pack
       run: dotnet pack -c Release --output nupkgs --no-build -p:VersionPrefix=${{ env.VERSION_PREFIX }} -p:VersionSuffix=${{ env.VERSION_SUFFIX }}
     - name: NuGet pack artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v6
       with:
         name: NuGets
         path: ./Sources/nupkgs
