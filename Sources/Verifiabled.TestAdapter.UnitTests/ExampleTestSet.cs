@@ -7,7 +7,7 @@
         {
             var expected = true;
 
-            Assert.That(expected).IsTrue();
+            Assert.IsTrue(expected);
         }
     }
 }

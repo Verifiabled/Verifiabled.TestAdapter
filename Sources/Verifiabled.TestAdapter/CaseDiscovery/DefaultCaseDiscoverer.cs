@@ -91,7 +91,7 @@ namespace Verifiabled.TestAdapter.CaseDiscovery
             }
             catch (Exception exception)
             {
-                logger.Information($"Failed to create DiaSession for {source}. Error: {exception.Message}");
+                logger.Error($"Failed to create DiaSession for {source}. Error: {exception.Message}");
                 return null;
             }
         }

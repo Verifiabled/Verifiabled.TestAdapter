@@ -1,7 +1,6 @@
 ﻿using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using System.Diagnostics;
 using System.Reflection;
-using Verifiabled.Constraints;
 using Verifiabled.TestAdapter.Logger;
 
 namespace Verifiabled.TestAdapter.CaseExecution
@@ -33,6 +32,8 @@ namespace Verifiabled.TestAdapter.CaseExecution
 
                 else
                     HandleException(exception, testResult);
+
+                // TODO: Handle AggregateException
             }
 
             finally
@@ -86,19 +87,7 @@ namespace Verifiabled.TestAdapter.CaseExecution
                 return;
             }
 
-            GlobalConstraintListenerManager.Prepare();
-
             method.Invoke(instance, null);
-
-            var constraints = GlobalConstraintListenerManager.Listener.GetAllContraints();
-
-            if (constraints.Any(constraint => !constraint.IsFulfilled))
-            {
-                testResult.Outcome = TestOutcome.Failed;
-                testResult.ErrorMessage = string.Join("\n\n", constraints.Select(constraint => constraint.FailureMessage));
-                return;
-            }
-
             testResult.Outcome = TestOutcome.Passed;
         }
 
