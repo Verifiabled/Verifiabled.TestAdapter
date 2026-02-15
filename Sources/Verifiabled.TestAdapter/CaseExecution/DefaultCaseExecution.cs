@@ -1,12 +1,15 @@
 ﻿using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using System.Diagnostics;
 using System.Reflection;
+using System.Threading.Tasks;
 using Verifiabled.TestAdapter.Logger;
 
 namespace Verifiabled.TestAdapter.CaseExecution
 {
-    internal class DefaultCaseExecution : ICaseExecution
+    internal sealed class DefaultCaseExecution : ICaseExecution
     {
+        private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(30);
+
         public TestResult Execute(TestCase testCase, ILogger logger, CancellationToken cancellationToken)
         {
             var testResult = new TestResult(testCase);
@@ -22,18 +25,12 @@ namespace Verifiabled.TestAdapter.CaseExecution
                     return testResult;
                 }
 
-                ExecuteTest(testCase, testResult, logger);
+                ExecuteTest(testCase, testResult, logger, cancellationToken);
             }
 
             catch (Exception exception)
             {
-                if (exception.InnerException != null)
-                    HandleException(exception.InnerException, testResult);
-
-                else
-                    HandleException(exception, testResult);
-
-                // TODO: Handle AggregateException
+                HandleException(exception, testResult);
             }
 
             finally
@@ -46,7 +43,7 @@ namespace Verifiabled.TestAdapter.CaseExecution
             return testResult;
         }
 
-        private static void ExecuteTest(TestCase testCase, TestResult testResult, ILogger logger)
+        private static void ExecuteTest(TestCase testCase, TestResult testResult, ILogger logger, CancellationToken cancellationToken)
         {
             (string assemblyName, string? namespaceName, string className, string methodName) = OriginPropagator.Depropagate(testCase.FullyQualifiedName);
 
@@ -59,7 +56,8 @@ namespace Verifiabled.TestAdapter.CaseExecution
                 return;
             }
 
-            var type = assembly.GetTypes().FirstOrDefault(t => t.Namespace == namespaceName && t.Name == className);
+            //var type = assembly.GetTypes().FirstOrDefault(t => t.Namespace == namespaceName && t.Name == className);
+            var type = assembly.GetType($"{namespaceName}.{className}");
 
             if (type == null)
             {
@@ -77,9 +75,37 @@ namespace Verifiabled.TestAdapter.CaseExecution
                 return;
             }
 
-            var instance = Activator.CreateInstance(type);
+            if (!method.IsPublic)
+            {
+                logger.Error($"Method is not public: {methodName}");
+                testResult.Outcome = TestOutcome.Failed;
+                testResult.ErrorMessage = "Test case could not be executed because the method containing this case is not public";
+                return;
+            }
 
-            if (instance == null)
+            var voidMethod = method.ReturnType == typeof(void);
+            var taskMethod = method.ReturnType == typeof(Task);
+
+            if (!voidMethod && !taskMethod)
+            {
+                logger.Error($"Method has unsupported return type: {method.ReturnType}");
+                testResult.Outcome = TestOutcome.Failed;
+                testResult.ErrorMessage = "Test case could not be executed because the method containing this case has unsupported return type. Only void and Task are supported";
+                return;
+            }
+
+            if (method.GetParameters().Length > 0)
+            {
+                logger.Error($"Method has unsupported parameters: {methodName}");
+                testResult.Outcome = TestOutcome.Failed;
+                testResult.ErrorMessage = "Test case could not be executed because the method containing this case has unsupported parameters. Only parameterless methods are supported";
+                return;
+            }
+
+            var classIsStatic = type.IsAbstract && type.IsSealed;
+            var instance = classIsStatic ? null : Activator.CreateInstance(type);
+
+            if (instance == null && !classIsStatic)
             {
                 logger.Error($"Instance was not created");
                 testResult.Outcome = TestOutcome.Failed;
@@ -87,8 +113,24 @@ namespace Verifiabled.TestAdapter.CaseExecution
                 return;
             }
 
-            method.Invoke(instance, null);
+            if (voidMethod)
+                RunSyncMethod(method, instance, cancellationToken);
+            else
+                RunAsyncMethod(method, instance, cancellationToken);
+
             testResult.Outcome = TestOutcome.Passed;
+        }
+
+        private static void RunSyncMethod(MethodInfo method, object? instance, CancellationToken cancellationToken)
+        {
+            using var caseTask = Task.Factory.StartNew(() => method.Invoke(instance, null), cancellationToken);
+            caseTask.Wait(cancellationToken);
+        }
+
+        private static void RunAsyncMethod(MethodInfo method, object? instance, CancellationToken cancellationToken)
+        {
+            using var caseTask = (Task)method.Invoke(instance, null)!;
+            caseTask.Wait(cancellationToken);
         }
 
         private static void HandleException(Exception exception, TestResult testResult)
