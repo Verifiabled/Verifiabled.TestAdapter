@@ -8,8 +8,6 @@ namespace Verifiabled.TestAdapter.CaseExecution
 {
     internal sealed class DefaultCaseExecution : ICaseExecution
     {
-        private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(30);
-
         public TestResult Execute(TestCase testCase, ILogger logger, CancellationToken cancellationToken)
         {
             var testResult = new TestResult(testCase);
@@ -45,24 +43,31 @@ namespace Verifiabled.TestAdapter.CaseExecution
 
         private static void ExecuteTest(TestCase testCase, TestResult testResult, ILogger logger, CancellationToken cancellationToken)
         {
-            (string assemblyName, string? namespaceName, string className, string methodName) = OriginPropagator.Depropagate(testCase.FullyQualifiedName);
+            var (typeFullName, methodName) = OriginPropagator.Depropagate(testCase.FullyQualifiedName);
 
-            var assembly = Assembly.Load(assemblyName);
+            var assembly = Assembly.LoadFrom(testCase.Source);
 
             if (assembly == null)
             {
-                logger.Error($"Assembly not found: {assemblyName}");
+                logger.Error($"Assembly not found: {testCase.Source}");
                 testResult.Outcome = TestOutcome.NotFound;
                 return;
             }
 
-            //var type = assembly.GetTypes().FirstOrDefault(t => t.Namespace == namespaceName && t.Name == className);
-            var type = assembly.GetType($"{namespaceName}.{className}");
+            var type = assembly.GetType(typeFullName);
 
             if (type == null)
             {
-                logger.Error($"Type not found: {className}");
+                logger.Error($"Type not found for test case: {testCase.FullyQualifiedName}");
                 testResult.Outcome = TestOutcome.NotFound;
+                return;
+            }
+
+            if (type.IsNotPublic)
+            {
+                logger.Error($"Type is not public: {type.FullName}");
+                testResult.Outcome = TestOutcome.Failed;
+                testResult.ErrorMessage = "Test case could not be executed because the class containing this case is not public";
                 return;
             }
 

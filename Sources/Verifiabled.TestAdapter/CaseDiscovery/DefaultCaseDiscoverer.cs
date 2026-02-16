@@ -62,8 +62,15 @@ namespace Verifiabled.TestAdapter.CaseDiscovery
                         break;
                     }
 
-                    var fullyQualifiedName = OriginPropagator.Propagate(assemblyName, type.Namespace, type.Name, method.Name);
+                    if (type.FullName == null)
+                    {
+                         logger.Information("Type.FullName is null, skipping");
+                         continue;
+                    }
+
+                    var fullyQualifiedName = OriginPropagator.Propagate(type.FullName, method.Name);
                     var testCase = new TestCase(fullyQualifiedName, VerifiabledExecutorConstants.Uri, source);
+                    testCase.DisplayName = method.Name;
 
                     if (diaSession != null && type.FullName != null)
                     {

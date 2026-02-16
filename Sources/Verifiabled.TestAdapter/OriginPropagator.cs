@@ -2,14 +2,21 @@
 {
     internal static class OriginPropagator
     {
-        private const char Separator = '/';
+        private const char Separator = '.';
 
-        internal static string Propagate(string assemblyName, string? namespaceName, string className, string methodName) => string.Join(Separator, assemblyName, namespaceName, className, methodName);
+        internal static string Propagate(string typeFullName, string methodName) => $"{typeFullName}{Separator}{methodName}";
 
-        internal static (string assemblyName, string? namespaceName, string className, string methodName) Depropagate(string payload)
+        internal static (string typeFullName, string methodName) Depropagate(string fullyQualifiedName)
         {
-            var parts = payload.Split(Separator);
-            return (parts[0], parts[1], parts[2], parts[3]);
+            var lastSeparatorIndex = fullyQualifiedName.LastIndexOf(Separator);
+            
+            if (lastSeparatorIndex < 0)
+                return (string.Empty, fullyQualifiedName);
+
+            var typeFullName = fullyQualifiedName.Substring(0, lastSeparatorIndex);
+            var methodName = fullyQualifiedName.Substring(lastSeparatorIndex + 1);
+            
+            return (typeFullName, methodName);
         }
     }
 }
